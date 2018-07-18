@@ -1,24 +1,39 @@
 package com.example.android.inventoryapp;
 
+import android.app.LoaderManager;
+import android.content.ContentUris;
 import android.content.ContentValues;
+import android.content.CursorLoader;
 import android.content.Intent;
+import android.content.Loader;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import data.ItemConstant.ItemEntry;
-import data.ItemDbHelper;
+import com.example.android.inventoryapp.data.ItemConstant.ItemEntry;
+import com.example.android.inventoryapp.data.ItemDbHelper;
 
-public class MainActivity extends AppCompatActivity {
+import java.util.List;
 
-    /** Database helper that will provide us access to the database */
-    private ItemDbHelper mDbHelper;
+public class MainActivity extends AppCompatActivity implements
+    LoaderManager.LoaderCallbacks<Cursor> {
+
+    /** Identifier for the item data loader */
+    private static final int ITEM_LOADER = 0;
+
+    /** Adapter for the ListView */
+    ItemCursorAdapter mCursorAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,103 +50,34 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // To access our database, we instantiate our subclass of SQLiteOpenHelper
-        // and pass the context, which is the current activity.
-        mDbHelper = new ItemDbHelper(this);
-    }
+        ListView itemListView = findViewById(R.id.list);
+        View emptyView = findViewById(R.id.empty_view);
+        itemListView.setEmptyView(emptyView);
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        displayDatabaseInfo();
-    }
+        mCursorAdapter = new ItemCursorAdapter (this, null);
+        itemListView.setAdapter(mCursorAdapter);
 
-    /**
-     * Temporary helper method to display information in the onscreen TextView about the state of
-     * the pets database.
-     */
-    private void displayDatabaseInfo() {
-        // Create and/or open a database to read from it
-        SQLiteDatabase db = mDbHelper.getReadableDatabase();
+        // Setup the item click listener
+        itemListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
 
-        // Define a projection that specifies which columns from the database
-        // you will actually use after this query.
-        String[] projection = {
-                ItemEntry._ID,
-                ItemEntry.COLUMN_PRODUCT_NAME,
-                ItemEntry.COLUMN_PRICE,
-                ItemEntry.COLUMN_QANTITY,
-                ItemEntry.COLUMN_SUPPLIERS_NAME,
-                ItemEntry.COLUMN_SUPPLIERS_PHONE};
-
-        // Perform a query on the pets table
-        Cursor cursor = db.query(
-                ItemEntry.TABLE_NAME,   // The table to query
-                projection,            // The columns to return
-                null,                  // The columns for the WHERE clause
-                null,                  // The values for the WHERE clause
-                null,                  // Don't group the rows
-                null,                  // Don't filter by row groups
-                null);                   // The sort order
-
-        TextView displayView = findViewById(R.id.text_view_item);
-
-        try {
-            // Create a header in the Text View that looks like this:
-            //
-            // The pets table contains <number of rows in Cursor> pets.
-            // _id - name - breed - gender - weight
-            //
-            // In the while loop below, iterate through the rows of the cursor and display
-            // the information from each column in this order.
-            displayView.setText("The pets table contains " + cursor.getCount() + " pets.\n\n");
-            displayView.append(ItemEntry._ID + " - " +
-                    ItemEntry.COLUMN_PRODUCT_NAME + " - " +
-                    ItemEntry.COLUMN_PRICE + " - " +
-                    ItemEntry.COLUMN_QANTITY + " - " +
-                    ItemEntry.COLUMN_SUPPLIERS_NAME + " - " +
-                    ItemEntry.COLUMN_SUPPLIERS_PHONE + "\n");
-
-            // Figure out the index of each column
-            int idColumnIndex = cursor.getColumnIndex(ItemEntry._ID);
-            int nameColumnIndex = cursor.getColumnIndex(ItemEntry.COLUMN_PRODUCT_NAME);
-            int priceColumnIndex = cursor.getColumnIndex(ItemEntry.COLUMN_PRICE);
-            int quantityColumnIndex = cursor.getColumnIndex(ItemEntry.COLUMN_QANTITY);
-            int suppliersNameColumnIndex = cursor.getColumnIndex(ItemEntry.COLUMN_SUPPLIERS_NAME);
-            int suppliersPhoneColumnIndex = cursor.getColumnIndex(ItemEntry.COLUMN_SUPPLIERS_PHONE);
-
-            // Iterate through all the returned rows in the cursor
-            while (cursor.moveToNext()) {
-                // Use that index to extract the String or Int value of the word
-                // at the current row the cursor is on.
-                int currentID = cursor.getInt(idColumnIndex);
-                String currentName = cursor.getString(nameColumnIndex);
-                int currentPrice = cursor.getInt(priceColumnIndex);
-                int currentQuantity = cursor.getInt(quantityColumnIndex);
-                String currentSupplier = cursor.getString(suppliersNameColumnIndex);
-                long currentSuppliersPhone = cursor.getLong(suppliersPhoneColumnIndex);
-
-                // Display the values from each column of the current row in the cursor in the TextView
-                displayView.append(("\n" + currentID + " - " +
-                        currentName + " - " +
-                        currentPrice + " - " +
-                        currentQuantity + " - " +
-                        currentSupplier + " - " +
-                        currentSuppliersPhone));
+                // Create new intent to go to {@link EditorActivity}
+                Intent intent = new Intent(MainActivity.this, EditorActivity.class);
+                Uri currentPetUri = ContentUris.withAppendedId(ItemEntry.CONTENT_URI, id);
+                intent.setData(currentPetUri);
+                startActivity(intent);
             }
-        } finally {
-            // Always close the cursor when you're done reading from it. This releases all its
-            // resources and makes it invalid.
-            cursor.close();
-        }
+        });
+
+        // Kick off the loader
+        getLoaderManager().initLoader(ITEM_LOADER, null, this);
     }
 
     /**
-     * Helper method to insert hardcoded pet data into the database. For debugging purposes only.
+     * Helper method to insert hardcoded item com.example.android.inventoryapp.data into the database. For debugging purposes only.
      */
     private void insertItem() {
-        // Gets the database in write mode
-        SQLiteDatabase db = mDbHelper.getWritableDatabase();
 
         // Create a ContentValues object where column names are the keys,
         // and Toto's pet attributes are the values.
@@ -142,14 +88,19 @@ public class MainActivity extends AppCompatActivity {
         values.put(ItemEntry.COLUMN_SUPPLIERS_NAME,"Supplier1");
         values.put(ItemEntry.COLUMN_SUPPLIERS_PHONE,0);
 
-        // Insert a new row for Toto in the database, returning the ID of that new row.
-        // The first argument for db.insert() is the pets table name.
-        // The second argument provides the name of a column in which the framework
-        // can insert NULL in the event that the ContentValues is empty (if
-        // this is set to "null", then the framework will not insert a row when
-        // there are no values).
-        // The third argument is the ContentValues object containing the info for Toto.
-        long newRowId = db.insert(ItemEntry.TABLE_NAME, null, values);
+        // Insert a new row for TestItem into the provider using the ContentResolver.
+        // Use the {@link PetEntry#CONTENT_URI} to indicate that we want to insert
+        // into the pets database table.
+        // Receive the new content URI that will allow us to access Item's data in the future.
+        Uri newUri = getContentResolver().insert(ItemEntry.CONTENT_URI, values);
+    }
+
+    /**
+     * Helper method to delete all items in the database.
+     */
+    private void deleteAllItems() {
+        int rowsDeleted = getContentResolver().delete(ItemEntry.CONTENT_URI, null, null);
+        Log.v("MainActivity", rowsDeleted + " rows deleted from item database");
     }
 
     @Override
@@ -164,16 +115,41 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         // User clicked on a menu option in the app bar overflow menu
         switch (item.getItemId()) {
-            // Respond to a click on the "Insert dummy data" menu option
+            // Respond to a click on the "Insert dummy com.example.android.inventoryapp.data" menu option
             case R.id.action_insert_dummy_data:
                 insertItem();
-                displayDatabaseInfo();
                 return true;
             // Respond to a click on the "Delete all entries" menu option
             case R.id.action_delete_all_entries:
-                // Do nothing for now
+                deleteAllItems();
                 return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
+
+        String [] projection = {
+                ItemEntry._ID,
+                ItemEntry.COLUMN_PRODUCT_NAME,
+                ItemEntry.COLUMN_PRICE,
+                ItemEntry.COLUMN_QANTITY};
+        return new CursorLoader(this,
+                ItemEntry.CONTENT_URI,
+                projection,
+                null,
+                null,
+                null);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        mCursorAdapter.swapCursor(data);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        mCursorAdapter.swapCursor(null);
     }
 }

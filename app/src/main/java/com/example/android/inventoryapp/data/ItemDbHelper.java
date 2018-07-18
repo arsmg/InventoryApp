@@ -1,9 +1,9 @@
-package data;
+package com.example.android.inventoryapp.data;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import data.ItemConstant.ItemEntry;
+import com.example.android.inventoryapp.data.ItemConstant.ItemEntry;
 
 public class ItemDbHelper extends SQLiteOpenHelper {
 
