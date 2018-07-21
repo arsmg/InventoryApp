@@ -73,4 +73,10 @@
     <string name="editor_delete_item_failed">Error with deleting item</string>
 
     <string name="empty_view">No items! Hit the + button to insert one ;)</string>
+
+    <string name="empty_product_price">The product price field is empty!</string>
+    <string name="empty_product_name">The product name field is empty!</string>
+    <string name="empty_product_quantity">The product quantity field is empty!</string>
+    <string name="empty_suppliers_name">The suppliers name field is empty!</string>
+    <string name="empty_suppliers_phone">The suppliers phone field is empty!</string>
 </resources>

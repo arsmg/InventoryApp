@@ -145,18 +145,38 @@ public class EditorActivity extends AppCompatActivity
        });
    }
 
-   private void saveItem() {
+   public boolean validationData() {
+
        String nameString = mProductName.getText().toString().trim();
        String priceString = mPrice.getText().toString().trim();
        String quantityString = mQuantity.getText().toString().trim();
        String suppliersName = mSuppliersName.getText().toString().trim();
        String suppliersPhone = mSuppliersPhone.getText().toString().trim();
 
-       if (mCurrentItemUri == null && TextUtils.isEmpty(nameString) && TextUtils.isEmpty(priceString)
-               && TextUtils.isEmpty(quantityString) && TextUtils.isEmpty(suppliersName) &&
-               TextUtils.isEmpty(suppliersPhone)) {
-           return;
-       }
+       if (nameString.isEmpty()) {
+           Toast.makeText(this, getString(R.string.empty_product_name),Toast.LENGTH_SHORT).show();
+           return false;
+       }else if (priceString.isEmpty()){
+           Toast.makeText(this, getString(R.string.empty_product_price),Toast.LENGTH_SHORT).show();
+           return false;
+       }else if (quantityString.isEmpty()) {
+           Toast.makeText(this, getString(R.string.empty_product_quantity), Toast.LENGTH_SHORT).show();
+           return false;
+       }else if (suppliersName.isEmpty()) {
+           Toast.makeText(this, getString(R.string.empty_suppliers_name),Toast.LENGTH_SHORT).show();
+           return false;
+       }else if (suppliersPhone.isEmpty()) {
+           Toast.makeText(this, getString(R.string.empty_suppliers_phone),Toast.LENGTH_SHORT).show();
+           return false;
+       }else return true;
+   }
+
+   private void saveItem() {
+       String nameString = mProductName.getText().toString().trim();
+       String priceString = mPrice.getText().toString().trim();
+       String quantityString = mQuantity.getText().toString().trim();
+       String suppliersName = mSuppliersName.getText().toString().trim();
+       String suppliersPhone = mSuppliersPhone.getText().toString().trim();
 
        // Create a ContentValues object where column names are the keys
        ContentValues values = new ContentValues();
@@ -211,10 +231,12 @@ public class EditorActivity extends AppCompatActivity
         switch (item.getItemId()) {
             // Respond to a click on the "Save" menu option
             case R.id.action_save:
-                // Save pet to database
+                validationData();
+                if (validationData()) {
                 saveItem();
                 // Exit activity
                 finish();
+                return true; }
                 return true;
             // Respond to a click on the "Delete" menu option
             case R.id.action_delete:
